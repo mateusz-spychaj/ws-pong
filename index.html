@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WS Pong</title>
+    <link rel="stylesheet" href="/src/game.css">
+</head>
+
+<body>
+    <div id="container">
+        <h1 style="color: #00ff88; margin-bottom: 20px;">🏓 WS Pong</h1>
+        <div id="qrCode"></div>
+        <div id="status">Waiting for players...</div>
+        <div id="score" class="hidden">Player 1: <span id="score1">0</span> | Player 2: <span id="score2">0</span></div>
+        <canvas id="gameCanvas" width="800" height="600" class="hidden"></canvas>
+    </div>
+    <script type="module" src="/src/game.ts"></script>
+</body>
+
+</html>
