@@ -32,5 +32,5 @@ jobs:
         run: |
           rsync -avz --delete \
             --exclude='*.map' \
-            ./build/ \
+            ./dist/ \
             /www
