@@ -1,0 +1,38 @@
+name: CI – Build & Deploy ws-pong
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for production
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to production folder (main branch only)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          rsync -avz --delete \
+            --exclude='*.map' \
+            ./build/ \
+            /volume2/web/ws-pong/
