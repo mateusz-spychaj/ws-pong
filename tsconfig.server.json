@@ -16,6 +16,6 @@
     "sourceMap": true,
     "isolatedModules": true
   },
-  "include": ["server.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "public", "src"]
+  "include": ["server.ts"],
+  "exclude": ["node_modules", "dist", "public", "src", "tests"]
 }
