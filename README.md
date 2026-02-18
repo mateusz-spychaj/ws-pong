@@ -2,6 +2,11 @@
 
 A real-time multiplayer Pong game built with TypeScript, WebSockets, and QR code scanning for mobile controllers.
 
+# Demo
+Just scan qr code on two devices and play on https://ws-pong.mateuszspychaj.pl/ 🚀
+
+[![CI – Build & Deploy ws-pong](https://github.com/mateusz-spychaj/ws-pong/actions/workflows/main.yml/badge.svg)](https://github.com/mateusz-spychaj/ws-pong/actions/workflows/main.yml)
+
 ## Features
 
 - 🎮 Two-player gameplay with mobile controllers
