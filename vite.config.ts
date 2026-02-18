@@ -9,6 +9,7 @@ export default defineConfig({
   build: {
     outDir: "dist/public",
     emptyOutDir: true,
+    sourcemap: false,
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
@@ -22,6 +23,10 @@ export default defineConfig({
     },
     minify: "esbuild",
     cssMinify: "esbuild",
+    target: "es2015",
+  },
+  esbuild: {
+    legalComments: "none",
   },
   server: {
     port: 5174,

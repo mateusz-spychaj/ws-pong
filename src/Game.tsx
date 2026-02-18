@@ -153,12 +153,23 @@ export default function Game() {
 
     useEffect(() => {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = import.meta.env.DEV ? 'localhost:3000' : window.location.host;
+
+        let wsHost: string;
+        if (import.meta.env.DEV) {
+            // Development: use VITE_BACKEND_URL
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+            wsHost = backendUrl.replace(/^https?:\/\//, '');
+        } else {
+            // Production: use window.location.hostname without port
+            wsHost = window.location.hostname;
+        }
+
         const ws = new WebSocket(`${wsProtocol}//${wsHost}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'register_screen' }));
+            const origin = window.location.origin;
+            ws.send(JSON.stringify({ type: 'register_screen', origin }));
         };
 
         ws.onmessage = (event) => {

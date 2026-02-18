@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "http";
 import QRCode from "qrcode";
 import { networkInterfaces } from "os";
+import "dotenv/config";
 
 interface ExtendedWebSocket extends WebSocket {
   playerId?: "player1" | "player2";
@@ -17,13 +18,28 @@ interface MessageData {
   type: string;
   player?: string;
   direction?: string;
+  origin?: string;
 }
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-app.use(express.static("public"));
+const isProduction = process.env.NODE_ENV === "production";
+const publicDir = isProduction ? "dist/public" : "public";
+
+// CSP headers for production
+if (isProduction) {
+  app.use((_req, res, next) => {
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http: https:; img-src 'self' data:;",
+    );
+    next();
+  });
+}
+
+app.use(express.static(publicDir));
 
 const players: Players = { player1: null, player2: null };
 let gameScreen: ExtendedWebSocket | null = null;
@@ -49,11 +65,10 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
     if (data.type === "register_screen") {
       gameScreen = ws;
-      const ip = getLocalIP();
-      const address = server.address();
-      if (!address || typeof address === "string") return;
-      const port = address.port;
-      const url = `http://${ip}:${port}/controller.html`;
+      const origin =
+        data.origin ||
+        `http://${getLocalIP()}:${server.address() && typeof server.address() !== "string" ? (server.address() as any).port : 3000}`;
+      const url = `${origin}/controller.html`;
 
       QRCode.toDataURL(url, { width: 300 }, (_err, qrCode) => {
         ws.send(JSON.stringify({ type: "qr_code", qrCode, url }));
@@ -117,7 +132,6 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
 const PORT = process.env.PORT || 3000;
 const VITE_PORT = 5173;
-const isProduction = process.env.NODE_ENV === "production";
 const isDevelopment = !isProduction;
 
 server.listen(PORT, () => {
