@@ -1,27 +1,11 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
-import { createHtmlPlugin } from "vite-plugin-html";
+import react from "@vitejs/plugin-react";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   root: ".",
   publicDir: false,
-  plugins:
-    mode === "production"
-      ? [
-          createHtmlPlugin({
-            minify: {
-              collapseWhitespace: true,
-              removeComments: true,
-              removeRedundantAttributes: true,
-              removeScriptTypeAttributes: true,
-              removeStyleLinkTypeAttributes: true,
-              useShortDoctype: true,
-              minifyCSS: true,
-              minifyJS: true,
-            },
-          }),
-        ]
-      : [],
+  plugins: [react()],
   build: {
     outDir: "public",
     emptyOutDir: true,
@@ -40,9 +24,9 @@ export default defineConfig(({ mode }) => ({
     cssMinify: "esbuild",
   },
   server: {
-    port: 5173,
+    port: 5174,
     hmr: {
       overlay: true,
     },
   },
-}));
+});
