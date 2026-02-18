@@ -33,4 +33,4 @@ jobs:
           rsync -avz --delete \
             --exclude='*.map' \
             ./build/ \
-            /volume2/web/ws-pong/
+            /www
