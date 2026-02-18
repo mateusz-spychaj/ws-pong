@@ -25,9 +25,7 @@ jobs:
         run: npm ci
 
       - name: Build for production
-        run: npm run build
-        env:
-          NODE_ENV: production
+        run: npm run build:prod
 
       - name: Deploy to production folder (main branch only)
         if: github.ref == 'refs/heads/main'
