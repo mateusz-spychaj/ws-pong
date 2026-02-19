@@ -1,54 +1,34 @@
 import { useEffect, useState, useRef } from 'react';
+import Button from './components/Button';
 
 export default function Controller() {
     const [status, setStatus] = useState('Connecting...');
     const [showControls, setShowControls] = useState(false);
+    const [showModeSelection, setShowModeSelection] = useState(false);
+    const [playerColor, setPlayerColor] = useState('#00ff88');
+    const [playerName, setPlayerName] = useState('');
+    const [gameEnded, setGameEnded] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
-    const [isLandscape, setIsLandscape] = useState(() => {
-        return window.innerWidth > window.innerHeight;
-    });
+    const [isLandscape, setIsLandscape] = useState(() => window.innerWidth > window.innerHeight);
 
     useEffect(() => {
-        const checkOrientation = () => {
-            setIsLandscape(window.innerWidth > window.innerHeight);
-        };
+        const checkOrientation = () => setIsLandscape(window.innerWidth > window.innerHeight);
 
-        // Check on mount
-        checkOrientation();
-
-        // Listen to resize events
         window.addEventListener('resize', checkOrientation);
-
-        // Listen to orientationchange event
         window.addEventListener('orientationchange', checkOrientation);
-
-        // Also listen to orientation change
-        const mediaQuery = window.matchMedia('(orientation: landscape)');
-        const handleOrientationChange = (e: MediaQueryListEvent) => {
-            setIsLandscape(e.matches);
-        };
-
-        mediaQuery.addEventListener('change', handleOrientationChange);
 
         return () => {
             window.removeEventListener('resize', checkOrientation);
             window.removeEventListener('orientationchange', checkOrientation);
-            mediaQuery.removeEventListener('change', handleOrientationChange);
         };
     }, []);
 
     useEffect(() => {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-        let wsHost: string;
-        if (import.meta.env.DEV) {
-            // Development: use VITE_BACKEND_URL
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-            wsHost = backendUrl.replace(/^https?:\/\//, '');
-        } else {
-            // Production: use window.location.hostname without port
-            wsHost = window.location.hostname;
-        }
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+        const wsHost = import.meta.env.DEV
+            ? backendUrl.replace(/^https?:\/\//, '')
+            : window.location.hostname;
 
         const ws = new WebSocket(`${wsProtocol}//${wsHost}`);
         wsRef.current = ws;
@@ -61,12 +41,29 @@ export default function Controller() {
             const data = JSON.parse(event.data);
 
             if (data.type === 'assigned') {
-                setStatus(`You are ${data.player === 'player1' ? 'Player 1 (Top)' : 'Player 2 (Bottom)'}`);
-                setShowControls(true);
+                if (data.player === 'player1') {
+                    setStatus('You are ');
+                    setPlayerName('Red');
+                    setPlayerColor('#ff4444'); // Red
+                    setShowModeSelection(true);
+                } else {
+                    setStatus('You are ');
+                    setPlayerName('Blue');
+                    setPlayerColor('#4444ff'); // Blue
+                    setShowControls(true);
+                }
             }
 
             if (data.type === 'error') {
                 setStatus(data.message || 'Error occurred');
+            }
+
+            if (data.type === 'game_ended') {
+                setGameEnded(true);
+            }
+
+            if (data.type === 'game_restarted') {
+                setGameEnded(false);
             }
         };
 
@@ -87,6 +84,25 @@ export default function Controller() {
         setShowControls(false);
     };
 
+    const handlePlayVsPC = () => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'start_vs_ai' }));
+        }
+        setShowModeSelection(false);
+        setShowControls(true);
+    };
+
+    const handleWaitForPlayer = () => {
+        setShowModeSelection(false);
+        setStatus('Waiting for second player...');
+    };
+
+    const handlePlayAgain = () => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'restart_game' }));
+        }
+    };
+
     return (
         <div
             className="h-[100dvh] bg-[#1a1a2e] flex flex-col items-center justify-center text-[#00ff88] select-none"
@@ -101,38 +117,87 @@ export default function Controller() {
                     <p className="text-xl text-white text-center">Please rotate your device to landscape mode</p>
                 </div>
             )}
-            <div className="text-2xl my-5 text-indigo-400 text-center">{status}</div>
+            <div className="text-2xl my-5 text-indigo-400 text-center">
+                {status}
+                {playerName && <span style={{ color: playerColor }}>{playerName}</span>}
+                {playerName && ' Player'}
+            </div>
 
-            {showControls && isLandscape && (
+            {showModeSelection && isLandscape && (
+                <div className="flex flex-col gap-6 w-full px-8 items-center h-1/2">
+                    <div className="text-2xl text-center text-white mb-2">Choose game mode:</div>
+                    <div className="flex gap-4 w-full h-full">
+                        <Button
+                            onClick={handlePlayVsPC}
+                            variant="default"
+                            size="lg"
+                            className="flex-1 h-full text-3xl font-bold bg-[#00ff88] text-[#1a1a2e] hover:bg-[#00dd77]"
+                        >
+                            Play vs PC
+                        </Button>
+                        <Button
+                            onClick={handleWaitForPlayer}
+                            variant="secondary"
+                            size="lg"
+                            className="flex-1 h-full text-3xl font-bold bg-[#4a4a6e] text-white hover:bg-[#5a5a7e]"
+                        >
+                            Wait for Player
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {showControls && isLandscape && !gameEnded && (
                 <div className="flex flex-col flex-grow w-full">
                     <div className="flex flex-grow gap-x-4">
-                        <button
+                        <Button
                             onTouchStart={(e) => { e.preventDefault(); sendMove('left'); }}
                             onTouchEnd={(e) => { e.preventDefault(); sendMove('stop'); }}
                             onMouseDown={() => sendMove('left')}
                             onMouseUp={() => sendMove('stop')}
-                            className="w-1/2 h-full text-8xl bg-[#00ff88] block mx-8 rounded-lg active:scale-95 transition-transform duration-100"
+                            variant="outline"
+                            size="lg"
+                            className="w-1/2 h-full text-8xl block mx-8"
+                            style={{ backgroundColor: playerColor, borderColor: playerColor }}
                         >
                             ◀
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onTouchStart={(e) => { e.preventDefault(); sendMove('right'); }}
                             onTouchEnd={(e) => { e.preventDefault(); sendMove('stop'); }}
                             onMouseDown={() => sendMove('right')}
                             onMouseUp={() => sendMove('stop')}
-                            className="w-1/2 h-full text-8xl bg-[#00ff88] block mx-8 rounded-lg active:scale-95 transition-transform duration-100"
+                            variant="outline"
+                            size="lg"
+                            className="w-1/2 h-full text-8xl block mx-8"
+                            style={{ backgroundColor: playerColor, borderColor: playerColor }}
                         >
                             ▶
-                        </button>
+                        </Button>
                     </div>
 
-                    <button
+                    <Button
                         onClick={handleExit}
-                        className="w-full h-[10vh] text-lg bg-[#FF0000] rounded-lg border-none cursor-pointer transition-all duration-200 select-none active:bg-red-700 flex items-center justify-center text-white font-bold p-4"
+                        variant="destructive"
+                        size="lg"
+                        className="w-full h-[10vh] text-lg font-bold bg-[#FF0000] hover:bg-[#dd0000]"
                     >
                         EXIT
-                    </button>
+                    </Button>
+                </div>
+            )}
+
+            {gameEnded && isLandscape && (
+                <div className="flex items-center justify-center flex-grow w-full px-8">
+                    <Button
+                        onClick={handlePlayAgain}
+                        variant="default"
+                        size="lg"
+                        className="w-full h-full text-6xl font-bold bg-[#00ff88] text-[#1a1a2e] hover:bg-[#00dd77]"
+                    >
+                        Play Again
+                    </Button>
                 </div>
             )}
         </div>

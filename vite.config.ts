@@ -10,6 +10,9 @@ export default defineConfig({
     outDir: "dist/public",
     emptyOutDir: true,
     sourcemap: false,
+    minify: "esbuild",
+    cssMinify: "esbuild",
+    target: "es2015",
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
@@ -21,9 +24,6 @@ export default defineConfig({
         assetFileNames: "[name].[ext]",
       },
     },
-    minify: "esbuild",
-    cssMinify: "esbuild",
-    target: "es2015",
   },
   esbuild: {
     legalComments: "none",

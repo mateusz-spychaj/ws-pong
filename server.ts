@@ -9,11 +9,6 @@ interface ExtendedWebSocket extends WebSocket {
   playerId?: "player1" | "player2";
 }
 
-interface Players {
-  player1: ExtendedWebSocket | null;
-  player2: ExtendedWebSocket | null;
-}
-
 interface MessageData {
   type: string;
   player?: string;
@@ -41,8 +36,12 @@ if (isProduction) {
 
 app.use(express.static(publicDir));
 
-const players: Players = { player1: null, player2: null };
+const players = {
+  player1: null as ExtendedWebSocket | null,
+  player2: null as ExtendedWebSocket | null,
+};
 let gameScreen: ExtendedWebSocket | null = null;
+let aiMode = false;
 
 function getLocalIP(): string {
   const nets = networkInterfaces();
@@ -65,9 +64,9 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
 
     if (data.type === "register_screen") {
       gameScreen = ws;
-      const origin =
-        data.origin ||
-        `http://${getLocalIP()}:${server.address() && typeof server.address() !== "string" ? (server.address() as any).port : 3000}`;
+      const addr = server.address();
+      const port = addr && typeof addr !== "string" ? addr.port : 3000;
+      const origin = data.origin || `http://${getLocalIP()}:${port}`;
       const url = `${origin}/controller.html`;
 
       QRCode.toDataURL(url, { width: 300 }, (_err, qrCode) => {
@@ -75,23 +74,44 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       });
     }
 
+    if (data.type === "game_ended") {
+      // Notify all players that game ended
+      if (players.player1) {
+        players.player1.send(JSON.stringify({ type: "game_ended" }));
+      }
+      if (players.player2) {
+        players.player2.send(JSON.stringify({ type: "game_ended" }));
+      }
+    }
+
     if (data.type === "register_player") {
-      if (!players.player1) {
-        players.player1 = ws;
-        ws.playerId = "player1";
-        ws.send(JSON.stringify({ type: "assigned", player: "player1" }));
-      } else if (!players.player2) {
-        players.player2 = ws;
-        ws.playerId = "player2";
-        ws.send(JSON.stringify({ type: "assigned", player: "player2" }));
-      } else {
+      const playerId = !players.player1
+        ? "player1"
+        : !players.player2 && !aiMode
+          ? "player2"
+          : null;
+
+      if (!playerId) {
         ws.send(JSON.stringify({ type: "error", message: "Game is full" }));
         return;
       }
 
-      if (gameScreen && players.player1 && players.player2) {
-        gameScreen.send(JSON.stringify({ type: "start_game" }));
+      players[playerId] = ws;
+      ws.playerId = playerId;
+      ws.send(JSON.stringify({ type: "assigned", player: playerId }));
+
+      if (playerId === "player1" && gameScreen) {
         gameScreen.send(JSON.stringify({ type: "hide_qr" }));
+      } else if (playerId === "player2" && gameScreen) {
+        gameScreen.send(JSON.stringify({ type: "start_game" }));
+      }
+    }
+
+    if (data.type === "start_vs_ai") {
+      aiMode = true;
+      if (gameScreen) {
+        gameScreen.send(JSON.stringify({ type: "enable_ai" }));
+        gameScreen.send(JSON.stringify({ type: "start_game" }));
       }
     }
 
@@ -104,45 +124,62 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
         }),
       );
     }
+
+    if (data.type === "restart_game") {
+      // Reset game state
+      aiMode = false;
+
+      // Notify game screen to restart
+      if (gameScreen) {
+        gameScreen.send(JSON.stringify({ type: "restart_game" }));
+      }
+
+      // Notify all players
+      if (players.player1) {
+        players.player1.send(JSON.stringify({ type: "game_restarted" }));
+      }
+      if (players.player2) {
+        players.player2.send(JSON.stringify({ type: "game_restarted" }));
+      }
+    }
   });
 
   ws.on("close", () => {
-    if (ws === players.player1) {
-      players.player1 = null;
-      if (gameScreen)
-        gameScreen.send(
-          JSON.stringify({ type: "player_disconnected", player: "player1" }),
-        );
-    }
-    if (ws === players.player2) {
-      players.player2 = null;
-      if (gameScreen)
-        gameScreen.send(
-          JSON.stringify({ type: "player_disconnected", player: "player2" }),
-        );
-    }
-    if (ws === gameScreen) gameScreen = null;
+    const playerId = ws.playerId;
 
-    // Check if both players disconnected
+    if (playerId && players[playerId] === ws) {
+      players[playerId] = null;
+      gameScreen?.send(
+        JSON.stringify({ type: "player_disconnected", player: playerId }),
+      );
+    }
+
+    if (ws === gameScreen) {
+      gameScreen = null;
+      aiMode = false;
+    }
+
     if (!players.player1 && !players.player2 && gameScreen) {
       gameScreen.send(JSON.stringify({ type: "all_players_disconnected" }));
+      aiMode = false;
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-const VITE_PORT = 5173;
-const isDevelopment = !isProduction;
 
 server.listen(PORT, () => {
   const ip = getLocalIP();
+  const env = isProduction ? "production" : "development";
   console.log(`🎮 Server running at http://${ip}:${PORT}`);
-  if (isDevelopment) {
+
+  if (!isProduction) {
     console.log(
-      `📱 Open http://${ip}:${VITE_PORT} on your computer (Vite dev server with hot reload)`,
+      `📱 Open http://${ip}:5173 on your computer (Vite dev server with hot reload)`,
     );
   } else {
     console.log(`📱 Open http://${ip}:${PORT} on your computer`);
   }
-  console.log(`🔧 Environment: ${isProduction ? "production" : "development"}`);
+
+  console.log(`🔧 Environment: ${env}`);
 });
