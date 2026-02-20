@@ -3,11 +3,12 @@ import { resolve } from "path";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  root: ".",
+  root: "src",
   publicDir: false,
+  envDir: "../",
   plugins: [react()],
   build: {
-    outDir: "dist/public",
+    outDir: "../dist/public",
     emptyOutDir: true,
     sourcemap: false,
     minify: "esbuild",
@@ -15,8 +16,8 @@ export default defineConfig({
     target: "es2015",
     rollupOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        controller: resolve(__dirname, "controller.html"),
+        main: resolve(__dirname, "src/index.html"),
+        controller: resolve(__dirname, "src/controller.html"),
       },
       output: {
         entryFileNames: "[name].js",
@@ -29,7 +30,7 @@ export default defineConfig({
     legalComments: "none",
   },
   server: {
-    port: 5174,
+    port: 5173,
     hmr: {
       overlay: true,
     },

@@ -1,6 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@source "../index.html";
+@source "../controller.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --color-background: #0f0f1e;
+  --color-fieldline: #00ff88;
+  --color-player1: #ff4444;
+  --color-player2: #4444ff;
+  --color-ball: #ffffff;
+}
 
 body {
   margin: 0;
@@ -11,17 +21,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-@layer utilities {
-  @keyframes gentle-rotate {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(90deg);
-    }
+@keyframes gentle-rotate {
+  0% {
+    transform: rotate(0deg);
   }
+  100% {
+    transform: rotate(90deg);
+  }
+}
 
-  .animate-gentle-rotate {
-    animation: gentle-rotate 2s ease-in-out infinite alternate;
-  }
+.animate-gentle-rotate {
+  animation: gentle-rotate 2s ease-in-out infinite alternate;
 }

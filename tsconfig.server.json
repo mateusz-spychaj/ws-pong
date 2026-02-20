@@ -4,7 +4,7 @@
     "module": "ESNext",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -16,6 +16,6 @@
     "sourceMap": true,
     "isolatedModules": true
   },
-  "include": ["server.ts"],
-  "exclude": ["node_modules", "dist", "public", "src", "tests"]
+  "include": ["src/server.ts"],
+  "exclude": ["node_modules", "dist", "public", "tests"]
 }

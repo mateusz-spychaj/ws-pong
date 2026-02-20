@@ -21,7 +21,7 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const isProduction = process.env.NODE_ENV === "production";
-const publicDir = isProduction ? "dist/public" : "public";
+const publicDir = "public";
 
 // CSP headers for production
 if (isProduction) {
@@ -66,8 +66,16 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       gameScreen = ws;
       const addr = server.address();
       const port = addr && typeof addr !== "string" ? addr.port : 3000;
-      const origin = data.origin || `http://${getLocalIP()}:${port}`;
-      const url = `${origin}/controller.html`;
+      const ip = getLocalIP();
+
+      // In development, Vite serves the frontend on port 5174 (configured in vite.config.ts)
+      // In production, the server serves from dist/public
+      const controllerPort = isProduction ? port : 5174;
+      const domain =
+        isProduction && process.env.BACKEND_URL
+          ? process.env.BACKEND_URL
+          : `http://${ip}:${controllerPort}`;
+      const url = `${domain}/controller.html`;
 
       QRCode.toDataURL(url, { width: 300 }, (_err, qrCode) => {
         ws.send(JSON.stringify({ type: "qr_code", qrCode, url }));
@@ -101,9 +109,13 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
       ws.send(JSON.stringify({ type: "assigned", player: playerId }));
 
       if (playerId === "player1" && gameScreen) {
-        gameScreen.send(JSON.stringify({ type: "hide_qr" }));
+        gameScreen.send(JSON.stringify({ type: "player1_connected" }));
       } else if (playerId === "player2" && gameScreen) {
         gameScreen.send(JSON.stringify({ type: "start_game" }));
+        // Notify player 1 that game is starting
+        if (players.player1) {
+          players.player1.send(JSON.stringify({ type: "game_start" }));
+        }
       }
     }
 
@@ -126,12 +138,27 @@ wss.on("connection", (ws: ExtendedWebSocket) => {
     }
 
     if (data.type === "restart_game") {
-      // Reset game state
+      // Notify game screen to restart (preserve aiMode for AI games)
+      if (gameScreen) {
+        gameScreen.send(JSON.stringify({ type: "restart_game", aiMode }));
+      }
+
+      // Notify all players
+      if (players.player1) {
+        players.player1.send(JSON.stringify({ type: "game_restarted" }));
+      }
+      if (players.player2) {
+        players.player2.send(JSON.stringify({ type: "game_restarted" }));
+      }
+    }
+
+    if (data.type === "wait_for_players") {
+      // Reset game state and show QR code
       aiMode = false;
 
-      // Notify game screen to restart
+      // Notify game screen to show QR code
       if (gameScreen) {
-        gameScreen.send(JSON.stringify({ type: "restart_game" }));
+        gameScreen.send(JSON.stringify({ type: "show_qr" }));
       }
 
       // Notify all players
@@ -178,7 +205,7 @@ server.listen(PORT, () => {
       `📱 Open http://${ip}:5173 on your computer (Vite dev server with hot reload)`,
     );
   } else {
-    console.log(`📱 Open http://${ip}:${PORT} on your computer`);
+    console.log(`📱 Open https://${process.env.BACKEND_URL} on your computer`);
   }
 
   console.log(`🔧 Environment: ${env}`);
