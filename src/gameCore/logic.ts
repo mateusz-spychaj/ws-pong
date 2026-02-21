@@ -143,7 +143,7 @@ export function handleScore(
     resetBall(game);
     game.ball.dx = randomDirection();
     game.ball.dy =
-      scorer === "player2" ? BALL_INITIAL_SPEED : -BALL_INITIAL_SPEED;
+      scorer === "player1" ? -BALL_INITIAL_SPEED : BALL_INITIAL_SPEED;
   }
 }
 

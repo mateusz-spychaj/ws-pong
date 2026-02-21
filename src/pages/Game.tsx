@@ -123,8 +123,8 @@ export default function Game() {
 
           if (!game.ballStarted && data.direction !== "stop") {
             const shouldStart =
-              (data.player === "player2" && game.ball.dy > 0) ||
-              (data.player === "player1" && game.ball.dy < 0) ||
+              (data.player === "player2" && game.ball.dy < 0) ||
+              (data.player === "player1" && game.ball.dy > 0) ||
               (game.ball.dx === 0 && game.ball.dy === 0);
 
             if (shouldStart) {

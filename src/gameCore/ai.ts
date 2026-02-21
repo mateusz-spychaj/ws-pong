@@ -11,6 +11,8 @@ import {
   AI_MISS_RANGE,
 } from "./constants";
 
+let aiServeTimeout: NodeJS.Timeout | null = null;
+
 export function initAI(game: GameState): void {
   game.aiMissCounter = 0;
   game.aiMissThreshold =
@@ -37,7 +39,17 @@ export function updateAI(game: GameState): void {
         : 0;
   }
 
-  if (!game.ballStarted && game.ball.dy > 0 && game.ball.dx !== 0) {
-    game.ballStarted = true;
+  if (
+    !game.ballStarted &&
+    game.ball.dy < 0 &&
+    game.ball.dx !== 0 &&
+    !aiServeTimeout
+  ) {
+    aiServeTimeout = setTimeout(() => {
+      if (game) {
+        game.ballStarted = true;
+      }
+      aiServeTimeout = null;
+    }, 500);
   }
 }

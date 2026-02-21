@@ -219,7 +219,7 @@ export default function Controller() {
       {gameEnded && (
         <div className={`${isLandscape ? "flex h-1/2 w-full flex-grow items-center justify-center" : "mt-8 flex w-full"} gap-4 px-8`}>
           {renderActionButton("Play Again", handlePlayAgain, "default", isLandscape)}
-          {renderActionButton("Wait for Players", handleWaitForPlayers, "secondary", isLandscape)}
+
         </div>
       )}
 
