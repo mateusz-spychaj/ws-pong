@@ -18,7 +18,7 @@ const GameCanvas = forwardRef<HTMLCanvasElement, GameCanvasProps>(
         height={CANVAS_HEIGHT}
         className={
           className ||
-          "mx-auto my-[20px] border-[3px] border-fieldline bg-[#0f0f1e]"
+          "mx-auto my-[20px] border-[3px] border-fieldline bg-[#0f0f1e] w-full max-w-[800px] h-auto"
         }
       />
     );
